@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dot Dash</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- Inline favicon to ensure it works without an external file -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='35' cy='65' r='30' fill='%233333ff'/><circle cx='65' cy='35' r='30' fill='%23ff3333'/></svg>" type="image/svg+xml">
+    <style>
+        body {
+            background-color: #000;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            font-family: 'Press Start 2P', monospace;
+            color: #00ff88;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        canvas {
+            border: 4px solid #00ff88;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 0 20px rgba(0,255,136,0.5);
+            background: #000;
+        }
+        #status {
+            text-align: center;
+            margin: 20px auto;
+            padding: 10px;
+            font-size: 18px;
+            border: 2px solid #00ff88;
+            max-width: 400px;
+            background-color: #000;
+            letter-spacing: 2px;
+        }
+        .retro-text {
+            animation: blink 1.5s infinite;
+        }
+        .game-container {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .game-title {
+            text-align: center;
+            font-size: 32px;
+            margin: 20px 0;
+            text-shadow: 0 0 10px rgba(0,255,136,0.7);
+        }
+        .game-stats {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .stat-box {
+            padding: 10px 20px;
+            border: 2px solid #00ff88;
+            background-color: #000;
+            text-shadow: 0 0 5px rgba(0,255,136,0.7);
+            letter-spacing: 2px;
+            min-width: 200px;
+            text-align: center;
+        }
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-title">DOT DASH</div>
+        <div id="status">INSERT CONTROLLER</div>
+        <canvas id="gameCanvas" width="1000" height="600"></canvas>
+        <div class="game-stats">
+            <div id="score" class="stat-box">SCORE: 000000</div>
+            <div id="time" class="stat-box">TIME: 000</div>
+        </div>
+    </div>
+    <script src="config.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
