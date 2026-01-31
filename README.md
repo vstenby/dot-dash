@@ -50,10 +50,19 @@ Key features:
 A simple HTTP server is required to serve the HTML and JS files.
 
 ### Prerequisites
-- Node.js or Python installed on your machine
+- [uv](https://docs.astral.sh/uv/) installed on your machine (recommended)
 - Two USB or Bluetooth gamepads supported by your browser
 
-### Start a Local Server
+### Start a Local Server (Recommended: uv)
+
+The easiest way to run the server is with `uv`:
+
+```bash
+cd dot-dash
+uv run server.py
+```
+
+### Alternative Methods
 
 1. **Using Python 3** (no install required):
 
@@ -70,23 +79,9 @@ A simple HTTP server is required to serve the HTML and JS files.
    http-server -p 8000
    ```
 
-3. **Access the game**: Open http://localhost:8000 in your web browser.
+### Access the Game
 
----
-
-## 🛠️ Server (Optional Python Backend)
-
-The `server.py` script can serve static files with optional logging:
-
-```bash
-# Install dependencies (if any):
-pip install flask
-
-# Run the server
-python server.py
-```
-
-Visit http://localhost:5000 to play. Adjust port in `server.py` if needed.
+Open http://localhost:8000 in your web browser.
 
 ---
 

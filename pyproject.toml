@@ -1,0 +1,7 @@
+[project]
+name = "dot-dash"
+version = "1.0.0"
+description = "A retro-inspired two-player arcade game"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = []
