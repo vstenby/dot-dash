@@ -546,8 +546,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Change bar color based on player state
                 if (!players[i].canBoost && players[i].boostMeter < 100) {
-                    // Exhausted state - show flashing gray
-                    boostFill.style.backgroundColor = gameStats.time % 2 === 0 ? '#777777' : '#444444';
+                    // Exhausted state - show flashing color tinted for each player
+                    if (players[i].color === '#ff3333') {
+                        // P1: Reddish-gray
+                        boostFill.style.backgroundColor = gameStats.time % 2 === 0 ? '#996666' : '#664444';
+                    } else {
+                        // P2: Bluish-gray
+                        boostFill.style.backgroundColor = gameStats.time % 2 === 0 ? '#666699' : '#444466';
+                    }
                 } else if (players[i].boosting) {
                     // When dashing, use the player's color and brighten it
                     const playerColor = players[i].color;
@@ -1243,13 +1249,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 );
                 
                 if (isExhausted) {
-                    // Exhausted effect - pulsing gray/dark version of player color
-                    const pulseRate = 0.5; // How fast the effect pulses
-                    const pulseAmount = 0.3 + 0.2 * Math.sin(Date.now() * pulseRate / 100); // Pulsing between 0.3-0.5 brightness
+                    // Exhausted effect - pulsing with player color tint
+                    const pulseRate = 0.5;
+                    const pulseAmount = 0.3 + 0.2 * Math.sin(Date.now() * pulseRate / 100);
                     
-                    // Create a "tired" looking glow
-                    gradient.addColorStop(0, `rgba(80, 80, 80, ${pulseAmount})`);
-                    gradient.addColorStop(0.7, `rgba(40, 40, 40, ${pulseAmount * 0.8})`);
+                    // Create a "tired" looking glow with player color tint
+                    if (players[i].color === '#ff3333') {
+                        // P1: Reddish-gray glow
+                        gradient.addColorStop(0, `rgba(120, 60, 60, ${pulseAmount})`);
+                        gradient.addColorStop(0.7, `rgba(80, 40, 40, ${pulseAmount * 0.8})`);
+                    } else {
+                        // P2: Bluish-gray glow
+                        gradient.addColorStop(0, `rgba(60, 60, 120, ${pulseAmount})`);
+                        gradient.addColorStop(0.7, `rgba(40, 40, 80, ${pulseAmount * 0.8})`);
+                    }
                     gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
                     
                     // Add smoke particle effect for exhaustion
@@ -1359,9 +1372,15 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Change fill color based on state
         if (isExhausted) {
-            // Pulsing gray for exhausted state
+            // Pulsing desaturated color for exhausted state - different per player
             const pulseValue = 128 + 40 * Math.sin(Date.now() / 200);
-            ctx.fillStyle = `rgb(${pulseValue}, ${pulseValue}, ${pulseValue})`;
+            if (player.color === '#ff3333') {
+                // P1: Desaturated red (more red than gray)
+                ctx.fillStyle = `rgb(${pulseValue}, ${pulseValue * 0.5}, ${pulseValue * 0.5})`;
+            } else {
+                // P2: Desaturated blue (more blue than gray)
+                ctx.fillStyle = `rgb(${pulseValue * 0.5}, ${pulseValue * 0.5}, ${pulseValue})`;
+            }
         } else if (player.boosting) {
             ctx.fillStyle = '#ffffff'; // Bright white when dashing
         } else {
