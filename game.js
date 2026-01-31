@@ -1349,12 +1349,12 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.fillStyle = '#ff3333';
             ctx.shadowColor = '#ff3333';
             ctx.shadowBlur = 20;
-            ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 100);
+            ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 120);
             ctx.shadowBlur = 0;
 
             // Display final scores
             ctx.font = '24px "Press Start 2P"';
-            let yOffset = canvas.height / 2;
+            let yOffset = canvas.height / 2 - 20;
 
             if (gameStats.singlePlayerMode) {
                 // Get the score from whichever player was playing
@@ -1363,6 +1363,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 ctx.fillText(`SCORE: ${score}`, canvas.width / 2, yOffset);
                 ctx.fillText(`TIME: ${gameStats.finalTime}s`, canvas.width / 2, yOffset + 50);
             } else {
+                // Two-player mode - align scores better
                 ctx.fillStyle = '#ff3333';
                 ctx.fillText(`P1: ${players[0].score}`, canvas.width / 2, yOffset);
                 ctx.fillStyle = '#3333ff';
