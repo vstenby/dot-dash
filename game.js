@@ -1290,19 +1290,26 @@ document.addEventListener('DOMContentLoaded', function() {
         // Darken the screen
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw pause text indicating which player paused
+
+        // Draw pause text
         ctx.font = '32px "Press Start 2P"';
         ctx.fillStyle = '#00ff88';
         ctx.textAlign = 'center';
-        const pb = gameStats.pausedBy;
-        const pauseMessage = pb !== null ? `PLAYER ${pb + 1} PAUSED` : 'PAUSED';
-        ctx.fillText(pauseMessage, canvas.width / 2, canvas.height / 2 - 20);
-        
-        // Draw instructions - updated for Circle button
+        ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2 - 20);
+
+        // Draw instructions based on input type
         ctx.font = '16px "Press Start 2P"';
-        ctx.fillText('PRESS CIRCLE TO CONTINUE', canvas.width / 2, canvas.height / 2 + 30);
-        
+        const hasKeyboardPlayer = inputConfig.player1 === 'keyboard' || inputConfig.player2 === 'keyboard';
+        const hasGamepadPlayer = inputConfig.player1 === 'gamepad' || inputConfig.player2 === 'gamepad';
+
+        if (hasKeyboardPlayer && hasGamepadPlayer) {
+            ctx.fillText('ESC / CIRCLE TO CONTINUE', canvas.width / 2, canvas.height / 2 + 30);
+        } else if (hasKeyboardPlayer) {
+            ctx.fillText('PRESS ESC TO CONTINUE', canvas.width / 2, canvas.height / 2 + 30);
+        } else {
+            ctx.fillText('PRESS CIRCLE TO CONTINUE', canvas.width / 2, canvas.height / 2 + 30);
+        }
+
         // Reset text alignment
         ctx.textAlign = 'left';
     }
@@ -1344,7 +1351,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add attribution text in bottom left
     const attributionElement = document.createElement('div');
     attributionElement.id = 'attribution';
-    attributionElement.textContent = 'Dot Dash v1.0 - vibe coded by vstenby using Claude 3.7 Sonnet and o4-mini';
+    attributionElement.textContent = 'Dot Dash v1.0 - vibecoded by vstenby';
     attributionElement.style.position = 'fixed';
     attributionElement.style.bottom = '10px';
     attributionElement.style.left = '10px';
