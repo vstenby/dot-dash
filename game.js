@@ -1353,8 +1353,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 ctx.fillText(`TIME: ${gameStats.finalTime}s`, canvas.width / 2, yOffset + 100);
             }
 
-            // Options (blinking)
-            const blink = Math.floor(menuAnimFrame / 30) % 2 === 0;
+            // Options (blinking using timestamp)
+            const blink = Math.floor(Date.now() / 500) % 2 === 0;
             if (blink) {
                 ctx.font = '16px "Press Start 2P"';
                 ctx.fillStyle = '#00ff88';
