@@ -1339,7 +1339,9 @@ document.addEventListener('DOMContentLoaded', function() {
             let yOffset = canvas.height / 2;
 
             if (gameStats.singlePlayerMode) {
-                ctx.fillText(`SCORE: ${players[0].active ? players[0].score : players[1].score}`, canvas.width / 2, yOffset);
+                // Get the score from whichever player was playing
+                const score = players[0].score > 0 || inputConfig.player1 !== 'none' ? players[0].score : players[1].score;
+                ctx.fillText(`SCORE: ${score}`, canvas.width / 2, yOffset);
                 ctx.fillText(`TIME: ${gameStats.finalTime}s`, canvas.width / 2, yOffset + 40);
             } else {
                 ctx.fillStyle = '#ff3333';
