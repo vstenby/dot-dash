@@ -145,10 +145,20 @@ document.addEventListener('DOMContentLoaded', function() {
         // Initialize audio
         initializeAudio();
 
+        // Show game UI elements
+        boostMetersElement.style.visibility = 'visible';
+        statsContainer.style.visibility = 'visible';
+
+        // Hide cursor during gameplay
+        document.body.style.cursor = 'none';
+
+        // Hide P2 elements in single player mode
         if (gameStats.singlePlayerMode) {
-            statusElement.textContent = 'SINGLE PLAYER MODE';
-        } else {
-            statusElement.textContent = 'GAME START';
+            const boostContainers = boostMetersElement.querySelectorAll('.boost-container');
+            if (boostContainers[1]) {
+                boostContainers[1].style.display = 'none';
+            }
+            scoreP2Element.style.display = 'none';
         }
     }
 
@@ -188,12 +198,6 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.fillText('ENTER/SPACE to skip (1P mode)', canvas.width / 2, 330);
         }
 
-        // Controls reference
-        ctx.font = '10px "Press Start 2P"';
-        ctx.fillStyle = '#666666';
-        ctx.fillText('P1: WASD + SPACE (1P) / L.SHIFT (2P)', canvas.width / 2, canvas.height - 80);
-        ctx.fillText('P2: ARROWS + RIGHT SHIFT (boost)', canvas.width / 2, canvas.height - 50);
-
         ctx.textAlign = 'left';
     }
     
@@ -219,54 +223,71 @@ document.addEventListener('DOMContentLoaded', function() {
     // Clear previous elements and create a structured HUD
     const statsContainer = document.createElement('div');
     statsContainer.id = 'stats-container';
+    statsContainer.style.position = 'fixed';
     statsContainer.style.display = 'flex';
     statsContainer.style.justifyContent = 'space-between';
     statsContainer.style.alignItems = 'center';
-    statsContainer.style.width = '100%';
-    statsContainer.style.padding = '5px 20px';
+    statsContainer.style.width = canvas.width + 'px';
+    statsContainer.style.padding = '5px 0';
+    statsContainer.style.margin = '0';
     statsContainer.style.boxSizing = 'border-box';
     statsContainer.style.backgroundColor = 'black';
     statsContainer.style.color = '#00ff88';
     statsContainer.style.borderTop = '2px solid #00ff88';
+    statsContainer.style.zIndex = '10';
     
-    // Create left section for player scores
-    const leftSection = document.createElement('div');
-    leftSection.style.display = 'flex';
-    leftSection.style.gap = '20px';
-    leftSection.appendChild(scoreElement);
-    leftSection.appendChild(scoreP2Element);
-    
-    // Center section for high score
+    // Use absolute positioning for precise placement
+    statsContainer.style.position = 'fixed';
+    statsContainer.style.display = 'block';
+
+    // Create scores section (P1 and P2) - positioned left
+    const scoresSection = document.createElement('div');
+    scoresSection.style.position = 'absolute';
+    scoresSection.style.left = '15%';
+    scoresSection.style.transform = 'translateX(-50%)';
+    scoresSection.style.display = 'flex';
+    scoresSection.style.gap = '20px';
+    scoresSection.appendChild(scoreElement);
+    scoresSection.appendChild(scoreP2Element);
+
+    // Center section for high score - centered at 50%
     const centerSection = document.createElement('div');
+    centerSection.style.position = 'absolute';
+    centerSection.style.left = '50%';
+    centerSection.style.transform = 'translateX(-50%)';
     centerSection.appendChild(highScoreElement);
-    
-    // Right section for time
+
+    // Right section for time - positioned right
     const rightSection = document.createElement('div');
+    rightSection.style.position = 'absolute';
+    rightSection.style.left = '85%';
+    rightSection.style.transform = 'translateX(-50%)';
     rightSection.appendChild(timeElement);
-    
+
+    // Remove box styling from score and time elements
+    scoreElement.style.border = 'none';
+    scoreElement.style.padding = '0';
+    scoreElement.style.minWidth = 'auto';
+    timeElement.style.border = 'none';
+    timeElement.style.padding = '0';
+    timeElement.style.minWidth = 'auto';
+    timeElement.style.whiteSpace = 'nowrap';
+
     // Add all sections to the container
-    statsContainer.appendChild(leftSection);
+    statsContainer.appendChild(scoresSection);
     statsContainer.appendChild(centerSection);
     statsContainer.appendChild(rightSection);
     
     // Fix: Insert the stats container properly without relying on gameContainer
-    // First, get the parent of the canvas
-    const canvasParent = canvas.parentNode;
-    
-    // Insert stats container after the canvas
-    canvasParent.insertBefore(statsContainer, canvas.nextSibling);
-    
-    // Insert status element after the stats container
-    canvasParent.insertBefore(statusElement, statsContainer.nextSibling);
-    
-    // Style status element
-    statusElement.style.width = '100%';
-    statusElement.style.textAlign = 'center';
-    statusElement.style.padding = '10px';
-    statusElement.style.color = '#00ff88';
-    statusElement.style.backgroundColor = 'black';
-    statusElement.style.fontSize = '18px';
-    statusElement.style.fontFamily = "'Press Start 2P', monospace";
+    // Hide original game-stats div and status element from HTML
+    const originalGameStats = document.querySelector('.game-stats');
+    if (originalGameStats) {
+        originalGameStats.style.display = 'none';
+    }
+    statusElement.style.display = 'none';
+
+    // Add stats container to body (fixed position, doesn't affect layout)
+    document.body.appendChild(statsContainer);
     
     // Style all stat elements consistently
     const allStats = document.querySelectorAll('.game-stat');
@@ -389,6 +410,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add the boost meters element to the DOM
     document.body.insertBefore(boostMetersElement, document.body.firstChild);
+
+    // Hide boost meters and stats until game starts (use visibility to reserve space)
+    boostMetersElement.style.visibility = 'hidden';
+    statsContainer.style.visibility = 'hidden';
     
     // Position boost meters at the top of the canvas
     function positionBoostMeters() {
@@ -399,12 +424,24 @@ document.addEventListener('DOMContentLoaded', function() {
         boostMetersElement.style.left = `${canvasRect.left}px`;
         boostMetersElement.style.width = `${canvasRect.width}px`;
     }
-    
-    // Position boost meters once DOM is loaded
+
+    // Position stats container below the canvas
+    function positionStatsContainer() {
+        const canvasRect = canvas.getBoundingClientRect();
+        statsContainer.style.top = (canvasRect.bottom) + 'px';
+        statsContainer.style.left = `${canvasRect.left}px`;
+        statsContainer.style.width = `${canvasRect.width}px`;
+    }
+
+    // Position elements once DOM is loaded
     positionBoostMeters();
-    
+    positionStatsContainer();
+
     // Reposition when window is resized
-    window.addEventListener('resize', positionBoostMeters);
+    window.addEventListener('resize', () => {
+        positionBoostMeters();
+        positionStatsContainer();
+    });
     
     // Function to draw boost meters (updating the meter visuals)
     function drawBoostMeters() {
@@ -890,10 +927,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (keyboardState.escape && !gameStats.escapePressedLastFrame) {
             if (gameStats.pausedBy === null) {
                 gameStats.pausedBy = 0;
-                statusElement.textContent = 'PAUSED';
+                document.body.style.cursor = 'default';
             } else {
                 gameStats.pausedBy = null;
-                statusElement.textContent = gameStats.activePlayers > 1 ? "GAME RESUMED" : "SINGLE PLAYER MODE";
+                document.body.style.cursor = 'none';
                 gameStats.startTime = Date.now() - (gameStats.time * 1000);
             }
         }
@@ -907,11 +944,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (gameStats.pausedBy === null) {
                         // Pause by this player
                         gameStats.pausedBy = i;
-                        statusElement.textContent = `PLAYER ${i+1} PAUSED`;
+                        document.body.style.cursor = 'default';
                     } else if (gameStats.pausedBy === i) {
                         // Unpause by same player
                         gameStats.pausedBy = null;
-                        statusElement.textContent = gameStats.activePlayers > 1 ? "GAME RESUMED" : "SINGLE PLAYER MODE";
+                        document.body.style.cursor = 'none';
                         // Reset timer to account for paused duration
                         gameStats.startTime = Date.now() - (gameStats.time * 1000);
                     }
@@ -1226,7 +1263,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         scoreElement.innerHTML = p1Text;
         scoreP2Element.innerHTML = p2Text;
-        timeElement.textContent = `TIME: ${gameStats.time.toString().padStart(3, '0')}`;
+        timeElement.textContent = `TIME:${gameStats.time.toString().padStart(3, '0')}`;
         
         // Draw boost meters
         drawBoostMeters();
@@ -1310,6 +1347,19 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.fillText('PRESS CIRCLE TO CONTINUE', canvas.width / 2, canvas.height / 2 + 30);
         }
 
+        // Draw controls reference
+        ctx.font = '10px "Press Start 2P"';
+        ctx.fillStyle = '#666666';
+        const isSinglePlayer = inputConfig.player2 === 'none';
+
+        if (inputConfig.player1 === 'keyboard') {
+            const p1Boost = isSinglePlayer ? 'SPACE' : 'L.SHIFT';
+            ctx.fillText(`P1: WASD + ${p1Boost} (BOOST)`, canvas.width / 2, canvas.height - 80);
+        }
+        if (inputConfig.player2 === 'keyboard') {
+            ctx.fillText('P2: ARROWS + R.SHIFT (BOOST)', canvas.width / 2, canvas.height - 50);
+        }
+
         // Reset text alignment
         ctx.textAlign = 'left';
     }
@@ -1362,20 +1412,6 @@ document.addEventListener('DOMContentLoaded', function() {
     attributionElement.style.zIndex = '5';
     document.body.appendChild(attributionElement);
     
-    // Add controls guide in bottom right
-    const controlsGuideElement = document.createElement('div');
-    controlsGuideElement.id = 'controlsGuide';
-    controlsGuideElement.style.position = 'fixed';
-    controlsGuideElement.style.bottom = '10px';
-    controlsGuideElement.style.right = '10px';
-    controlsGuideElement.style.color = '#00ff88';
-    controlsGuideElement.style.fontFamily = "'Press Start 2P', monospace";
-    controlsGuideElement.style.fontSize = '10px';
-    controlsGuideElement.style.opacity = '0.8';
-    controlsGuideElement.style.zIndex = '5';
-    controlsGuideElement.style.textAlign = 'right';
-    controlsGuideElement.innerHTML = 'KEYBOARD:<br>P1: WASD + SPACE/L.SHIFT<br>P2: ARROWS + R.SHIFT<br>ESC - PAUSE<br><br>GAMEPAD:<br>STICK/SQUARE/CIRCLE';
-    document.body.appendChild(controlsGuideElement);
 
     // Initialize
     statusElement.textContent = 'SELECT INPUT METHOD';
