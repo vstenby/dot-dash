@@ -139,6 +139,15 @@ document.addEventListener('DOMContentLoaded', function() {
             gameTitle.style.visibility = 'visible';
         }
 
+        // Restart blink animations by removing and re-adding the class
+        const retroElements = [scoreElement, scoreP2Element, highScoreElement];
+        retroElements.forEach(el => {
+            el.classList.remove('retro-text');
+            // Force reflow to restart animation
+            void el.offsetWidth;
+            el.classList.add('retro-text');
+        });
+
         // Activate players based on input config
         players[0].active = inputConfig.player1 !== 'none';
         players[1].active = inputConfig.player2 !== 'none';
@@ -959,6 +968,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function resetGame() {
+        // Restart blink animations by removing and re-adding the class
+        const retroElements = [scoreElement, scoreP2Element, highScoreElement];
+        retroElements.forEach(el => {
+            el.classList.remove('retro-text');
+            // Force reflow to restart animation
+            void el.offsetWidth;
+            el.classList.add('retro-text');
+        });
+
         // Reset both players based on input config
         for (let p = 0; p < 2; p++) {
             players[p].x = canvas.width / 3;
