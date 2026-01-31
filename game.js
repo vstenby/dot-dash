@@ -23,7 +23,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Shared controls
         escape: false,
         enter: false,
-        space: false
+        space: false,
+        q: false
     };
 
     // Input configuration for each player
@@ -59,6 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'Escape': keyboardState.escape = pressed; break;
             case 'Enter': keyboardState.enter = pressed; break;
             case 'Space': keyboardState.space = pressed; break;
+            case 'KeyQ': keyboardState.q = pressed; break;
         }
     }
 
@@ -77,11 +79,15 @@ document.addEventListener('DOMContentLoaded', function() {
             if (code === 'ArrowUp' || code === 'ArrowLeft' || code === 'ArrowDown' || code === 'ArrowRight') {
                 inputConfig.player2 = 'keyboard';
                 inputConfig.selectionPhase = 2;
-                startGameWithConfig();
             } else if (code === 'Enter' || code === 'Space') {
-                // Skip P2, single player mode
+                // Skip P2, single player mode - go to ready phase
                 inputConfig.player2 = 'none';
                 inputConfig.selectionPhase = 2;
+            }
+        }
+        // Ready to start (phase 2)
+        else if (inputConfig.selectionPhase === 2) {
+            if (code === 'Enter' || code === 'Space') {
                 startGameWithConfig();
             }
         }
@@ -114,7 +120,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     inputConfig.player2 = 'gamepad';
                     inputConfig.player2GamepadIndex = i;
                     inputConfig.selectionPhase = 2;
-                    startGameWithConfig();
+                } else if (inputConfig.selectionPhase === 2) {
+                    // Any button press starts the game
+                    if (gamepad.buttons.some(b => b.pressed)) {
+                        startGameWithConfig();
+                    }
                 }
             }
         }
@@ -149,6 +159,12 @@ document.addEventListener('DOMContentLoaded', function() {
         boostMetersElement.style.visibility = 'visible';
         statsContainer.style.visibility = 'visible';
 
+        // Show the title again
+        const gameTitle = document.querySelector('.game-title');
+        if (gameTitle) {
+            gameTitle.style.display = '';
+        }
+
         // Hide cursor during gameplay
         document.body.style.cursor = 'none';
 
@@ -162,40 +178,109 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Animation frame counter for blinking effects
+    let menuAnimFrame = 0;
+
     function drawInputMenu() {
-        // Darken background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        menuAnimFrame++;
 
+        // Draw split background - P1 red side, P2 blue side
+        const halfWidth = canvas.width / 2;
+
+        // P1 side (left) - dark red
+        ctx.fillStyle = '#1a0000';
+        ctx.fillRect(0, 0, halfWidth, canvas.height);
+
+        // P2 side (right) - dark blue
+        ctx.fillStyle = '#00001a';
+        ctx.fillRect(halfWidth, 0, halfWidth, canvas.height);
+
+        // Center divider line
+        ctx.strokeStyle = '#333333';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(halfWidth, 100);
+        ctx.lineTo(halfWidth, canvas.height - 80);
+        ctx.stroke();
+
+        // Draw "DOT DASH" title at top center
         ctx.textAlign = 'center';
-        ctx.font = '24px "Press Start 2P"';
+        ctx.font = '48px "Press Start 2P"';
         ctx.fillStyle = '#00ff88';
+        ctx.shadowColor = '#00ff88';
+        ctx.shadowBlur = 20;
+        ctx.fillText('DOT DASH', canvas.width / 2, 70);
+        ctx.shadowBlur = 0;
 
-        // Title
-        ctx.fillText('SELECT INPUT', canvas.width / 2, 80);
+        // P1 section (left side)
+        const p1X = halfWidth / 2;
+        ctx.font = '24px "Press Start 2P"';
+        ctx.fillStyle = '#ff3333';
+        ctx.shadowColor = '#ff3333';
+        ctx.shadowBlur = 10;
+        ctx.fillText('PLAYER 1', p1X, 150);
+        ctx.shadowBlur = 0;
 
-        ctx.font = '14px "Press Start 2P"';
-
-        if (inputConfig.selectionPhase === 0) {
-            // Waiting for P1
+        ctx.font = '12px "Press Start 2P"';
+        if (inputConfig.player1 === 'none') {
+            // Waiting for P1 input
+            ctx.fillStyle = '#888888';
+            ctx.fillText('WASD for Keyboard', p1X, 220);
+            ctx.fillText('or use Gamepad', p1X, 250);
+        } else {
+            // P1 has selected
             ctx.fillStyle = '#ff3333';
-            ctx.fillText('PLAYER 1', canvas.width / 2, 160);
+            ctx.fillText(inputConfig.player1.toUpperCase(), p1X, 220);
             ctx.fillStyle = '#00ff88';
-            ctx.font = '12px "Press Start 2P"';
-            ctx.fillText('Press WASD for Keyboard', canvas.width / 2, 200);
-            ctx.fillText('or use Gamepad', canvas.width / 2, 230);
-        } else if (inputConfig.selectionPhase === 1) {
-            // P1 selected, waiting for P2
-            ctx.fillStyle = '#ff3333';
-            ctx.fillText('PLAYER 1: ' + inputConfig.player1.toUpperCase(), canvas.width / 2, 160);
+            ctx.fillText('READY!', p1X, 260);
+        }
 
+        // P2 section (right side)
+        const p2X = halfWidth + halfWidth / 2;
+        ctx.font = '24px "Press Start 2P"';
+        ctx.fillStyle = '#3333ff';
+        ctx.shadowColor = '#3333ff';
+        ctx.shadowBlur = 10;
+        ctx.fillText('PLAYER 2', p2X, 150);
+        ctx.shadowBlur = 0;
+
+        ctx.font = '12px "Press Start 2P"';
+        if (inputConfig.player1 === 'none') {
+            // P1 hasn't selected yet
+            ctx.fillStyle = '#444444';
+            ctx.fillText('Waiting for P1...', p2X, 220);
+        } else if (inputConfig.player2 === 'none' && inputConfig.selectionPhase === 1) {
+            // Waiting for P2 input
+            ctx.fillStyle = '#888888';
+            ctx.fillText('ARROWS for Keyboard', p2X, 220);
+            ctx.fillText('or use Gamepad', p2X, 250);
+            ctx.fillStyle = '#666666';
+            ctx.font = '10px "Press Start 2P"';
+            ctx.fillText('ENTER/SPACE to skip', p2X, 300);
+        } else if (inputConfig.player2 === 'none' && inputConfig.selectionPhase === 2) {
+            // P2 skipped - single player mode
+            ctx.fillStyle = '#444444';
+            ctx.fillText('- SKIPPED -', p2X, 220);
+        } else {
+            // P2 has selected
             ctx.fillStyle = '#3333ff';
-            ctx.fillText('PLAYER 2', canvas.width / 2, 220);
+            ctx.fillText(inputConfig.player2.toUpperCase(), p2X, 220);
             ctx.fillStyle = '#00ff88';
-            ctx.font = '12px "Press Start 2P"';
-            ctx.fillText('Press ARROWS for Keyboard', canvas.width / 2, 260);
-            ctx.fillText('or use Gamepad', canvas.width / 2, 290);
-            ctx.fillText('ENTER/SPACE to skip (1P mode)', canvas.width / 2, 330);
+            ctx.fillText('READY!', p2X, 260);
+        }
+
+        // Show "PRESS ENTER TO START" when ready (phase 2)
+        if (inputConfig.selectionPhase === 2) {
+            // Blinking effect
+            const blink = Math.floor(menuAnimFrame / 30) % 2 === 0;
+            if (blink) {
+                ctx.font = '16px "Press Start 2P"';
+                ctx.fillStyle = '#00ff88';
+                ctx.shadowColor = '#00ff88';
+                ctx.shadowBlur = 15;
+                ctx.fillText('PRESS ENTER TO START', canvas.width / 2, canvas.height - 50);
+                ctx.shadowBlur = 0;
+            }
         }
 
         ctx.textAlign = 'left';
@@ -285,6 +370,12 @@ document.addEventListener('DOMContentLoaded', function() {
         originalGameStats.style.display = 'none';
     }
     statusElement.style.display = 'none';
+
+    // Hide the HTML title - we'll draw it on canvas instead
+    const gameTitle = document.querySelector('.game-title');
+    if (gameTitle) {
+        gameTitle.style.display = 'none';
+    }
 
     // Add stats container to body (fixed position, doesn't affect layout)
     document.body.appendChild(statsContainer);
@@ -893,6 +984,49 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function returnToMenu() {
+        // Reset input config
+        inputConfig.player1 = 'none';
+        inputConfig.player2 = 'none';
+        inputConfig.menuActive = true;
+        inputConfig.selectionPhase = 0;
+        inputConfig.player1GamepadIndex = undefined;
+        inputConfig.player2GamepadIndex = undefined;
+
+        // Reset game state
+        gameStats.pausedBy = null;
+        gameStats.gameOver = false;
+        gameStats.time = 0;
+        obstacles = [];
+        collectables = [];
+        scorePopups = [];
+        obstacleSpeed = initialObstacleSpeed;
+        gapSize = initialGapSize;
+
+        // Reset players
+        for (let p = 0; p < 2; p++) {
+            players[p].x = canvas.width / 3;
+            players[p].y = canvas.height * (p === 0 ? 1/3 : 2/3);
+            players[p].score = 0;
+            players[p].boostMeter = 100;
+            players[p].active = false;
+        }
+
+        // Hide game UI elements
+        boostMetersElement.style.visibility = 'hidden';
+        statsContainer.style.visibility = 'hidden';
+
+        // Show P2 elements again (in case they were hidden for single player)
+        const boostContainers = boostMetersElement.querySelectorAll('.boost-container');
+        if (boostContainers[1]) {
+            boostContainers[1].style.display = '';
+        }
+        scoreP2Element.style.display = '';
+
+        // Show cursor
+        document.body.style.cursor = 'default';
+    }
+
     function updateGamepads(speedFactor) {
         const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
 
@@ -935,6 +1069,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         gameStats.escapePressedLastFrame = keyboardState.escape;
+
+        // Handle quit to menu (Q key when paused)
+        if (gameStats.pausedBy !== null && keyboardState.q) {
+            returnToMenu();
+            return;
+        }
 
         // Per-player pause/resume (Circle button index 1)
         for (let i = 0; i < gamepads.length; i++) {
@@ -1347,17 +1487,28 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.fillText('PRESS CIRCLE TO CONTINUE', canvas.width / 2, canvas.height / 2 + 30);
         }
 
+        // Show quit option
+        ctx.font = '12px "Press Start 2P"';
+        ctx.fillText('Q - QUIT TO MENU', canvas.width / 2, canvas.height / 2 + 70);
+
         // Draw controls reference
         ctx.font = '10px "Press Start 2P"';
         ctx.fillStyle = '#666666';
         const isSinglePlayer = inputConfig.player2 === 'none';
 
+        let yPos = canvas.height / 2 + 110;
+
         if (inputConfig.player1 === 'keyboard') {
             const p1Boost = isSinglePlayer ? 'SPACE' : 'L.SHIFT';
-            ctx.fillText(`P1: WASD + ${p1Boost} (BOOST)`, canvas.width / 2, canvas.height - 80);
+            ctx.fillText(`P1: WASD + ${p1Boost} (BOOST)`, canvas.width / 2, yPos);
+            yPos += 25;
         }
         if (inputConfig.player2 === 'keyboard') {
-            ctx.fillText('P2: ARROWS + R.SHIFT (BOOST)', canvas.width / 2, canvas.height - 50);
+            ctx.fillText('P2: ARROWS + R.SHIFT (BOOST)', canvas.width / 2, yPos);
+            yPos += 25;
+        }
+        if (hasGamepadPlayer) {
+            ctx.fillText('GAMEPAD: STICK + SQUARE (BOOST)', canvas.width / 2, yPos);
         }
 
         // Reset text alignment
