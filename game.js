@@ -1353,15 +1353,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 ctx.fillText(`TIME: ${gameStats.finalTime}s`, canvas.width / 2, yOffset + 100);
             }
 
-            // Options (blinking using timestamp)
-            const blink = Math.floor(Date.now() / 500) % 2 === 0;
-            if (blink) {
-                ctx.font = '16px "Press Start 2P"';
-                ctx.fillStyle = '#00ff88';
-                ctx.fillText('PLAY AGAIN: ENTER', canvas.width / 2, canvas.height / 2 + 180);
-                ctx.fillStyle = '#888888';
-                ctx.fillText('MAIN MENU: Q', canvas.width / 2, canvas.height / 2 + 220);
-            }
+            // Options (subtle grey text, no blinking)
+            ctx.font = '16px "Press Start 2P"';
+            ctx.fillStyle = '#888888';
+            ctx.fillText('PLAY AGAIN: ENTER', canvas.width / 2, canvas.height / 2 + 180);
+            ctx.fillText('MAIN MENU: Q', canvas.width / 2, canvas.height / 2 + 220);
 
             ctx.textAlign = 'left';
             ctx.textBaseline = 'alphabetic';
