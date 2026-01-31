@@ -159,12 +159,6 @@ document.addEventListener('DOMContentLoaded', function() {
         boostMetersElement.style.visibility = 'visible';
         statsContainer.style.visibility = 'visible';
 
-        // Show the title again
-        const gameTitle = document.querySelector('.game-title');
-        if (gameTitle) {
-            gameTitle.style.display = '';
-        }
-
         // Hide cursor during gameplay
         document.body.style.cursor = 'none';
 
@@ -176,6 +170,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             scoreP2Element.style.display = 'none';
         }
+
+        // Recalculate UI positions after elements are visible
+        requestAnimationFrame(() => {
+            positionBoostMeters();
+            positionStatsContainer();
+        });
     }
 
     // Animation frame counter for blinking effects
@@ -309,21 +309,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const statsContainer = document.createElement('div');
     statsContainer.id = 'stats-container';
     statsContainer.style.position = 'fixed';
-    statsContainer.style.display = 'flex';
-    statsContainer.style.justifyContent = 'space-between';
-    statsContainer.style.alignItems = 'center';
+    statsContainer.style.display = 'block';
     statsContainer.style.width = canvas.width + 'px';
-    statsContainer.style.padding = '5px 0';
+    statsContainer.style.height = '40px';
+    statsContainer.style.padding = '10px 0';
     statsContainer.style.margin = '0';
     statsContainer.style.boxSizing = 'border-box';
     statsContainer.style.backgroundColor = 'black';
     statsContainer.style.color = '#00ff88';
-    statsContainer.style.borderTop = '2px solid #00ff88';
     statsContainer.style.zIndex = '10';
-    
-    // Use absolute positioning for precise placement
-    statsContainer.style.position = 'fixed';
-    statsContainer.style.display = 'block';
 
     // Create scores section (P1 and P2) - positioned left
     const scoresSection = document.createElement('div');
@@ -371,7 +365,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     statusElement.style.display = 'none';
 
-    // Hide the HTML title - we'll draw it on canvas instead
+    // Hide the HTML title - we'll draw it on canvas instead during menu
     const gameTitle = document.querySelector('.game-title');
     if (gameTitle) {
         gameTitle.style.display = 'none';
@@ -510,8 +504,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function positionBoostMeters() {
         // Position meters just above the game canvas
         const canvasRect = canvas.getBoundingClientRect();
-        const metersRect = boostMetersElement.getBoundingClientRect();
-        boostMetersElement.style.top = (canvasRect.top - metersRect.height - 5) + 'px';
+        // Calculate the height of boost meters (label + bar + padding)
+        // Label: ~17px, margin: 5px, bar: 12px, padding: 20px = ~54px total
+        const boostContainerHeight = 54;
+        boostMetersElement.style.top = (canvasRect.top - boostContainerHeight) + 'px';
         boostMetersElement.style.left = `${canvasRect.left}px`;
         boostMetersElement.style.width = `${canvasRect.width}px`;
     }
@@ -519,9 +515,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Position stats container below the canvas
     function positionStatsContainer() {
         const canvasRect = canvas.getBoundingClientRect();
-        statsContainer.style.top = (canvasRect.bottom) + 'px';
+        statsContainer.style.top = (canvasRect.bottom + 5) + 'px';
         statsContainer.style.left = `${canvasRect.left}px`;
         statsContainer.style.width = `${canvasRect.width}px`;
+        statsContainer.style.height = '40px'; // Fixed height for stats
     }
 
     // Position elements once DOM is loaded
