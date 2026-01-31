@@ -23,8 +23,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Shared controls
         escape: false,
         enter: false,
-        space: false
+        space: false,
+        m: false
     };
+
+    // Track key press state for toggle actions
+    let mKeyWasPressed = false;
 
     // Input configuration for each player
     const inputConfig = {
@@ -59,6 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'Escape': keyboardState.escape = pressed; break;
             case 'Enter': keyboardState.enter = pressed; break;
             case 'Space': keyboardState.space = pressed; break;
+            case 'KeyM': keyboardState.m = pressed; break;
         }
     }
 
@@ -142,8 +147,9 @@ document.addEventListener('DOMContentLoaded', function() {
         obstacleSpeed = initialObstacleSpeed;
         gapSize = initialGapSize;
 
-        // Initialize audio
+        // Initialize audio and start music
         initializeAudio();
+        startMusic();
 
         if (gameStats.singlePlayerMode) {
             statusElement.textContent = 'SINGLE PLAYER MODE';
@@ -797,19 +803,31 @@ document.addEventListener('DOMContentLoaded', function() {
     function playerDeath(playerIndex) {
         players[playerIndex].active = false;
         gameStats.activePlayers--;
-        
+
         // Play death sound effect (PacMan style)
         if (audioContext) {
             playSound('death');
         }
-        
+
         // High score is now updated continuously in gameLoop
-        
+
         // Update status message based on which players are still active
         if (gameStats.activePlayers === 0) {
             // All players are dead - freeze the game and timer
             gameStats.gameOver = true;
-            statusElement.textContent = 'GAME OVER (PRESS X)';
+            stopMusic();
+
+            // Show appropriate restart instruction based on input type
+            const hasKeyboard = inputConfig.player1 === 'keyboard' || inputConfig.player2 === 'keyboard';
+            const hasGamepad = inputConfig.player1 === 'gamepad' || inputConfig.player2 === 'gamepad';
+            if (hasKeyboard && hasGamepad) {
+                statusElement.textContent = 'GAME OVER (SPACE/X)';
+            } else if (hasKeyboard) {
+                statusElement.textContent = 'GAME OVER (SPACE)';
+            } else {
+                statusElement.textContent = 'GAME OVER (PRESS X)';
+            }
+
             // Store the final time when both players are dead
             gameStats.finalTime = gameStats.time;
         } else {
@@ -886,15 +904,29 @@ document.addEventListener('DOMContentLoaded', function() {
             return; // Don't process other inputs when game is over
         }
 
+        // Handle mute toggle (M key)
+        if (keyboardState.m && !mKeyWasPressed) {
+            const isMuted = toggleMute();
+            statusElement.textContent = isMuted ? 'AUDIO MUTED' : 'AUDIO ON';
+            setTimeout(() => {
+                if (!gameStats.gameOver && gameStats.pausedBy === null) {
+                    statusElement.textContent = gameStats.singlePlayerMode ? 'SINGLE PLAYER MODE' : '';
+                }
+            }, 1000);
+        }
+        mKeyWasPressed = keyboardState.m;
+
         // Handle pause (Escape key or Circle button)
         if (keyboardState.escape && !gameStats.escapePressedLastFrame) {
             if (gameStats.pausedBy === null) {
                 gameStats.pausedBy = 0;
                 statusElement.textContent = 'PAUSED';
+                pauseMusic();
             } else {
                 gameStats.pausedBy = null;
                 statusElement.textContent = gameStats.activePlayers > 1 ? "GAME RESUMED" : "SINGLE PLAYER MODE";
                 gameStats.startTime = Date.now() - (gameStats.time * 1000);
+                if (audioSettings.musicPlaying) startMusic();
             }
         }
         gameStats.escapePressedLastFrame = keyboardState.escape;
@@ -908,12 +940,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Pause by this player
                         gameStats.pausedBy = i;
                         statusElement.textContent = `PLAYER ${i+1} PAUSED`;
+                        pauseMusic();
                     } else if (gameStats.pausedBy === i) {
                         // Unpause by same player
                         gameStats.pausedBy = null;
                         statusElement.textContent = gameStats.activePlayers > 1 ? "GAME RESUMED" : "SINGLE PLAYER MODE";
                         // Reset timer to account for paused duration
                         gameStats.startTime = Date.now() - (gameStats.time * 1000);
+                        if (audioSettings.musicPlaying) startMusic();
                     }
                     gameStats.startButtonWasPressed[i] = true;
                 }
@@ -1374,7 +1408,7 @@ document.addEventListener('DOMContentLoaded', function() {
     controlsGuideElement.style.opacity = '0.8';
     controlsGuideElement.style.zIndex = '5';
     controlsGuideElement.style.textAlign = 'right';
-    controlsGuideElement.innerHTML = 'KEYBOARD:<br>P1: WASD + SPACE/L.SHIFT<br>P2: ARROWS + R.SHIFT<br>ESC - PAUSE<br><br>GAMEPAD:<br>STICK/SQUARE/CIRCLE';
+    controlsGuideElement.innerHTML = 'KEYBOARD:<br>P1: WASD + SPACE/L.SHIFT<br>P2: ARROWS + R.SHIFT<br>ESC - PAUSE | M - MUTE<br><br>GAMEPAD:<br>STICK/SQUARE/CIRCLE';
     document.body.appendChild(controlsGuideElement);
 
     // Initialize
@@ -1383,17 +1417,167 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Create Audio Context
     let audioContext = null;
-    
+
+    // Audio settings
+    const audioSettings = {
+        musicVolume: 0.3,
+        sfxVolume: 0.5,
+        muted: false,
+        musicPlaying: false
+    };
+
+    // Gain nodes for volume control
+    let masterGain = null;
+    let musicGain = null;
+    let sfxGain = null;
+
+    // Music system
+    let musicOscillators = [];
+    let musicInterval = null;
+    let currentNoteIndex = 0;
+
     // Initialize audio when the user interacts with the game
     function initializeAudio() {
         if (audioContext) return; // Already initialized
-        
+
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Create master gain structure
+            masterGain = audioContext.createGain();
+            masterGain.connect(audioContext.destination);
+
+            musicGain = audioContext.createGain();
+            musicGain.gain.value = audioSettings.musicVolume;
+            musicGain.connect(masterGain);
+
+            sfxGain = audioContext.createGain();
+            sfxGain.gain.value = audioSettings.sfxVolume;
+            sfxGain.connect(masterGain);
+
             initSounds();
             console.log("Audio initialized successfully");
         } catch (e) {
             console.error("Audio initialization failed:", e);
+        }
+    }
+
+    // Toggle mute
+    function toggleMute() {
+        audioSettings.muted = !audioSettings.muted;
+        if (masterGain) {
+            masterGain.gain.value = audioSettings.muted ? 0 : 1;
+        }
+        return audioSettings.muted;
+    }
+
+    // Start background music
+    function startMusic() {
+        if (!audioContext || audioSettings.musicPlaying) return;
+
+        audioSettings.musicPlaying = true;
+        currentNoteIndex = 0;
+
+        // Chiptune melody - retro arcade style
+        const melody = [
+            { note: 'E4', duration: 0.15 },
+            { note: 'E4', duration: 0.15 },
+            { note: null, duration: 0.15 },
+            { note: 'E4', duration: 0.15 },
+            { note: null, duration: 0.15 },
+            { note: 'C4', duration: 0.15 },
+            { note: 'E4', duration: 0.3 },
+            { note: 'G4', duration: 0.3 },
+            { note: null, duration: 0.3 },
+            { note: 'G3', duration: 0.3 },
+            { note: null, duration: 0.3 },
+            // Second phrase
+            { note: 'C4', duration: 0.3 },
+            { note: null, duration: 0.15 },
+            { note: 'G3', duration: 0.3 },
+            { note: null, duration: 0.15 },
+            { note: 'E3', duration: 0.3 },
+            { note: null, duration: 0.15 },
+            { note: 'A3', duration: 0.15 },
+            { note: 'B3', duration: 0.15 },
+            { note: 'A#3', duration: 0.15 },
+            { note: 'A3', duration: 0.3 },
+            // Third phrase
+            { note: 'G3', duration: 0.2 },
+            { note: 'E4', duration: 0.2 },
+            { note: 'G4', duration: 0.2 },
+            { note: 'A4', duration: 0.3 },
+            { note: 'F4', duration: 0.15 },
+            { note: 'G4', duration: 0.15 },
+            { note: null, duration: 0.15 },
+            { note: 'E4', duration: 0.3 },
+            { note: 'C4', duration: 0.15 },
+            { note: 'D4', duration: 0.15 },
+            { note: 'B3', duration: 0.3 },
+        ];
+
+        // Note frequency mapping
+        const noteFrequencies = {
+            'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56, 'E3': 164.81,
+            'F3': 174.61, 'F#3': 185.00, 'G3': 196.00, 'G#3': 207.65, 'A3': 220.00,
+            'A#3': 233.08, 'B3': 246.94,
+            'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63,
+            'F4': 349.23, 'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00,
+            'A#4': 466.16, 'B4': 493.88,
+            'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'G5': 783.99
+        };
+
+        function playNote() {
+            if (!audioSettings.musicPlaying || !audioContext) return;
+
+            const noteData = melody[currentNoteIndex];
+
+            if (noteData.note && noteFrequencies[noteData.note]) {
+                const osc = audioContext.createOscillator();
+                const noteGain = audioContext.createGain();
+
+                osc.type = 'square';
+                osc.frequency.value = noteFrequencies[noteData.note];
+
+                noteGain.gain.setValueAtTime(0.15, audioContext.currentTime);
+                noteGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + noteData.duration * 0.9);
+
+                osc.connect(noteGain);
+                noteGain.connect(musicGain);
+
+                osc.start();
+                osc.stop(audioContext.currentTime + noteData.duration);
+            }
+
+            currentNoteIndex = (currentNoteIndex + 1) % melody.length;
+
+            // Schedule next note
+            musicInterval = setTimeout(playNote, noteData.duration * 1000);
+        }
+
+        playNote();
+    }
+
+    // Stop background music
+    function stopMusic() {
+        audioSettings.musicPlaying = false;
+        if (musicInterval) {
+            clearTimeout(musicInterval);
+            musicInterval = null;
+        }
+    }
+
+    // Pause/resume music
+    function pauseMusic() {
+        if (musicInterval) {
+            clearTimeout(musicInterval);
+            musicInterval = null;
+        }
+    }
+
+    function resumeMusic() {
+        if (audioSettings.musicPlaying && !musicInterval) {
+            startMusic();
         }
     }
     
@@ -1515,8 +1699,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 noiseSource.connect(noiseFilter);
                 noiseFilter.connect(noiseGain);
                 
-                thumpGain.connect(audioContext.destination);
-                noiseGain.connect(audioContext.destination);
+                thumpGain.connect(sfxGain || audioContext.destination);
+                noiseGain.connect(sfxGain || audioContext.destination);
                 
                 // Start and stop the sounds
                 thumpOsc.start();
@@ -1553,8 +1737,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Connect nodes
                 sound.connect(gain);
-                gain.connect(audioContext.destination);
-                
+                gain.connect(sfxGain || audioContext.destination);
+
                 // Play the sound
                 sound.start();
                 sound.stop(

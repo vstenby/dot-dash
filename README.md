@@ -14,9 +14,10 @@ Key features:
 - Split-screen arcade action for up to two players
 - Smooth HTML5 Canvas graphics with glowing effects
 - Dynamic difficulty ramp: obstacles speed up and gaps shrink over time
-- Controller support via the Gamepad API
+- Keyboard and gamepad support with input selection menu
 - On-screen HUD: individual scores, high score, and elapsed time
-- Sound effects with satisfying percussive death "bump"
+- Retro chiptune background music with mute toggle (M key)
+- Sound effects for collectables and death
 
 ---
 
@@ -49,6 +50,7 @@ When starting the game, an input selection menu appears. Each player can choose 
 | Dash (Boost)    | Space (1P mode) / Left Shift (2P) | Right Shift    |
 | Pause / Resume  | Escape                            | Escape         |
 | Restart         | Space / Enter                     | Space / Enter  |
+| Mute Audio      | M                                 | M              |
 
 ### Gamepad Controls
 
