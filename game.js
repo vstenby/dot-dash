@@ -191,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Controls reference
         ctx.font = '10px "Press Start 2P"';
         ctx.fillStyle = '#666666';
-        ctx.fillText('P1: WASD + LEFT SHIFT (boost)', canvas.width / 2, canvas.height - 80);
+        ctx.fillText('P1: WASD + SPACE (1P) / L.SHIFT (2P)', canvas.width / 2, canvas.height - 80);
         ctx.fillText('P2: ARROWS + RIGHT SHIFT (boost)', canvas.width / 2, canvas.height - 50);
 
         ctx.textAlign = 'left';
@@ -945,7 +945,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (keyboardState.d) axisX += 1;
                     if (keyboardState.w) axisY -= 1;
                     if (keyboardState.s) axisY += 1;
-                    boostPressed = keyboardState.shiftLeft;
+                    // Use Space for boost in single player mode, Left Shift in two player
+                    boostPressed = gameStats.singlePlayerMode ? keyboardState.space : keyboardState.shiftLeft;
                 } else {
                     // Player 2: Arrow keys
                     if (keyboardState.arrowLeft) axisX -= 1;
@@ -1366,7 +1367,7 @@ document.addEventListener('DOMContentLoaded', function() {
     controlsGuideElement.style.opacity = '0.8';
     controlsGuideElement.style.zIndex = '5';
     controlsGuideElement.style.textAlign = 'right';
-    controlsGuideElement.innerHTML = 'KEYBOARD:<br>P1: WASD + L.SHIFT<br>P2: ARROWS + R.SHIFT<br>ESC - PAUSE<br><br>GAMEPAD:<br>STICK/SQUARE/CIRCLE';
+    controlsGuideElement.innerHTML = 'KEYBOARD:<br>P1: WASD + SPACE/L.SHIFT<br>P2: ARROWS + R.SHIFT<br>ESC - PAUSE<br><br>GAMEPAD:<br>STICK/SQUARE/CIRCLE';
     document.body.appendChild(controlsGuideElement);
 
     // Initialize

@@ -43,12 +43,12 @@ When starting the game, an input selection menu appears. Each player can choose 
 
 ### Keyboard Controls
 
-| Action          | Player 1      | Player 2       |
-|-----------------|---------------|----------------|
-| Move            | WASD          | Arrow Keys     |
-| Dash (Boost)    | Left Shift    | Right Shift    |
-| Pause / Resume  | Escape        | Escape         |
-| Restart         | Space / Enter | Space / Enter  |
+| Action          | Player 1                          | Player 2       |
+|-----------------|-----------------------------------|----------------|
+| Move            | WASD                              | Arrow Keys     |
+| Dash (Boost)    | Space (1P mode) / Left Shift (2P) | Right Shift    |
+| Pause / Resume  | Escape                            | Escape         |
+| Restart         | Space / Enter                     | Space / Enter  |
 
 ### Gamepad Controls
 
