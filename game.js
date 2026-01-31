@@ -5,6 +5,197 @@ document.addEventListener('DOMContentLoaded', function() {
     const statusElement = document.getElementById('status');
     const scoreElement = document.getElementById('score');
     const timeElement = document.getElementById('time');
+
+    // Keyboard state tracking
+    const keyboardState = {
+        // Player 1 (WASD + Left Shift)
+        w: false,
+        a: false,
+        s: false,
+        d: false,
+        shiftLeft: false,
+        // Player 2 (Arrows + Right Shift)
+        arrowUp: false,
+        arrowLeft: false,
+        arrowDown: false,
+        arrowRight: false,
+        shiftRight: false,
+        // Shared controls
+        escape: false,
+        enter: false,
+        space: false
+    };
+
+    // Input configuration for each player
+    const inputConfig = {
+        player1: 'none',  // 'none', 'keyboard', 'gamepad'
+        player2: 'none',
+        menuActive: true,  // Start with menu active
+        selectionPhase: 0  // 0 = waiting for P1, 1 = waiting for P2, 2 = ready
+    };
+
+    // Keyboard event listeners
+    document.addEventListener('keydown', (e) => {
+        updateKeyState(e.code, true);
+        handleMenuInput(e.code);
+    });
+
+    document.addEventListener('keyup', (e) => {
+        updateKeyState(e.code, false);
+    });
+
+    function updateKeyState(code, pressed) {
+        switch(code) {
+            case 'KeyW': keyboardState.w = pressed; break;
+            case 'KeyA': keyboardState.a = pressed; break;
+            case 'KeyS': keyboardState.s = pressed; break;
+            case 'KeyD': keyboardState.d = pressed; break;
+            case 'ShiftLeft': keyboardState.shiftLeft = pressed; break;
+            case 'ArrowUp': keyboardState.arrowUp = pressed; break;
+            case 'ArrowLeft': keyboardState.arrowLeft = pressed; break;
+            case 'ArrowDown': keyboardState.arrowDown = pressed; break;
+            case 'ArrowRight': keyboardState.arrowRight = pressed; break;
+            case 'ShiftRight': keyboardState.shiftRight = pressed; break;
+            case 'Escape': keyboardState.escape = pressed; break;
+            case 'Enter': keyboardState.enter = pressed; break;
+            case 'Space': keyboardState.space = pressed; break;
+        }
+    }
+
+    function handleMenuInput(code) {
+        if (!inputConfig.menuActive) return;
+
+        // Player 1 selection (phase 0)
+        if (inputConfig.selectionPhase === 0) {
+            if (code === 'KeyW' || code === 'KeyA' || code === 'KeyS' || code === 'KeyD') {
+                inputConfig.player1 = 'keyboard';
+                inputConfig.selectionPhase = 1;
+            }
+        }
+        // Player 2 selection (phase 1)
+        else if (inputConfig.selectionPhase === 1) {
+            if (code === 'ArrowUp' || code === 'ArrowLeft' || code === 'ArrowDown' || code === 'ArrowRight') {
+                inputConfig.player2 = 'keyboard';
+                inputConfig.selectionPhase = 2;
+                startGameWithConfig();
+            } else if (code === 'Enter' || code === 'Space') {
+                // Skip P2, single player mode
+                inputConfig.player2 = 'none';
+                inputConfig.selectionPhase = 2;
+                startGameWithConfig();
+            }
+        }
+    }
+
+    function handleGamepadMenuInput() {
+        if (!inputConfig.menuActive) return;
+
+        const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+
+        for (let i = 0; i < gamepads.length; i++) {
+            const gamepad = gamepads[i];
+            if (!gamepad) continue;
+
+            // Check for any button press or significant stick movement
+            const hasInput = gamepad.buttons.some(b => b.pressed) ||
+                           Math.abs(gamepad.axes[0]) > 0.5 ||
+                           Math.abs(gamepad.axes[1]) > 0.5;
+
+            if (hasInput) {
+                if (inputConfig.selectionPhase === 0) {
+                    inputConfig.player1 = 'gamepad';
+                    inputConfig.player1GamepadIndex = i;
+                    inputConfig.selectionPhase = 1;
+                } else if (inputConfig.selectionPhase === 1) {
+                    // Don't allow same gamepad for both players
+                    if (inputConfig.player1 === 'gamepad' && inputConfig.player1GamepadIndex === i) {
+                        continue;
+                    }
+                    inputConfig.player2 = 'gamepad';
+                    inputConfig.player2GamepadIndex = i;
+                    inputConfig.selectionPhase = 2;
+                    startGameWithConfig();
+                }
+            }
+        }
+    }
+
+    function startGameWithConfig() {
+        inputConfig.menuActive = false;
+
+        // Activate players based on input config
+        players[0].active = inputConfig.player1 !== 'none';
+        players[1].active = inputConfig.player2 !== 'none';
+
+        // Count active players
+        gameStats.activePlayers = (players[0].active ? 1 : 0) + (players[1].active ? 1 : 0);
+        gameStats.singlePlayerMode = gameStats.activePlayers === 1;
+
+        // Reset game state
+        gameStats.gameOver = false;
+        gameStats.startTime = Date.now();
+        gameStats.time = 0;
+        obstacles = [];
+        collectables = [];
+        scorePopups = [];
+        spawnDistanceCounter = 0;
+        obstacleSpeed = initialObstacleSpeed;
+        gapSize = initialGapSize;
+
+        // Initialize audio
+        initializeAudio();
+
+        if (gameStats.singlePlayerMode) {
+            statusElement.textContent = 'SINGLE PLAYER MODE';
+        } else {
+            statusElement.textContent = 'GAME START';
+        }
+    }
+
+    function drawInputMenu() {
+        // Darken background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.textAlign = 'center';
+        ctx.font = '24px "Press Start 2P"';
+        ctx.fillStyle = '#00ff88';
+
+        // Title
+        ctx.fillText('SELECT INPUT', canvas.width / 2, 80);
+
+        ctx.font = '14px "Press Start 2P"';
+
+        if (inputConfig.selectionPhase === 0) {
+            // Waiting for P1
+            ctx.fillStyle = '#ff3333';
+            ctx.fillText('PLAYER 1', canvas.width / 2, 160);
+            ctx.fillStyle = '#00ff88';
+            ctx.font = '12px "Press Start 2P"';
+            ctx.fillText('Press WASD for Keyboard', canvas.width / 2, 200);
+            ctx.fillText('or use Gamepad', canvas.width / 2, 230);
+        } else if (inputConfig.selectionPhase === 1) {
+            // P1 selected, waiting for P2
+            ctx.fillStyle = '#ff3333';
+            ctx.fillText('PLAYER 1: ' + inputConfig.player1.toUpperCase(), canvas.width / 2, 160);
+
+            ctx.fillStyle = '#3333ff';
+            ctx.fillText('PLAYER 2', canvas.width / 2, 220);
+            ctx.fillStyle = '#00ff88';
+            ctx.font = '12px "Press Start 2P"';
+            ctx.fillText('Press ARROWS for Keyboard', canvas.width / 2, 260);
+            ctx.fillText('or use Gamepad', canvas.width / 2, 290);
+            ctx.fillText('ENTER/SPACE to skip (1P mode)', canvas.width / 2, 330);
+        }
+
+        // Controls reference
+        ctx.font = '10px "Press Start 2P"';
+        ctx.fillStyle = '#666666';
+        ctx.fillText('P1: WASD + LEFT SHIFT (boost)', canvas.width / 2, canvas.height - 80);
+        ctx.fillText('P2: ARROWS + RIGHT SHIFT (boost)', canvas.width / 2, canvas.height - 50);
+
+        ctx.textAlign = 'left';
+    }
     
     // Create elements for both player scores
     // Replace the single score element with player-specific ones
@@ -629,59 +820,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function resetGame() {
-        // Check how many gamepads are connected
-        const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-        const connectedGamepads = Array.from(gamepads).filter(pad => pad);
-        const gamepadCount = connectedGamepads.length;
-        
-        // Set single player mode flag if only one controller is connected
-        gameStats.singlePlayerMode = (gamepadCount === 1);
-        
-        // Reset both players
+        // Reset both players based on input config
         for (let p = 0; p < 2; p++) {
             players[p].x = canvas.width / 3;
             players[p].y = canvas.height * (p === 0 ? 1/3 : 2/3);
             players[p].score = 0;
-            players[p].boostMeter = 100; // Reset boost meter
-            players[p].canBoost = true;  // Reset canBoost flag to enable dashing after restart
-            players[p].boosting = false; // Ensure boosting state is off
-            
-            // Check if this player has a controller
-            const hasController = p < gamepadCount;
-            
-            // In single player mode, only player 1 is active
-            // In two player mode, keep both players active if they were before
-            if ((gameStats.singlePlayerMode && p === 0) || 
-                (!gameStats.singlePlayerMode && hasController)) {
-                players[p].active = true;
-            } else {
-                players[p].active = false;
-            }
+            players[p].boostMeter = 100;
+            players[p].canBoost = true;
+            players[p].boosting = false;
+
+            // Check input config for this player
+            const playerInput = p === 0 ? inputConfig.player1 : inputConfig.player2;
+            players[p].active = playerInput !== 'none';
         }
-        
+
         gameStats.startTime = Date.now();
-        gameStats.activePlayers = 0; // Reset and count active players properly
-        
-        // Count active players correctly after reset
-        for (let p = 0; p < 2; p++) {
-            if (players[p].active) {
-                gameStats.activePlayers++;
-            }
-        }
-        
+        gameStats.activePlayers = (players[0].active ? 1 : 0) + (players[1].active ? 1 : 0);
+        gameStats.singlePlayerMode = gameStats.activePlayers === 1;
         gameStats.gameOver = false;
         gameStats.time = 0;
         gameStats.pausedBy = null;
         gameStats.startButtonWasPressed = [false, false];
-        
+
         obstacles = [];
-        collectables = []; // Clear collectables
-        scorePopups = [];  // Clear score popups
-        // Reset spawn counter and speed
+        collectables = [];
+        scorePopups = [];
         spawnDistanceCounter = 0;
-        obstacleSpeed = initialObstacleSpeed;  // Reset speed to initial value
-        gapSize = initialGapSize;              // Reset gap size to initial value
-        
+        obstacleSpeed = initialObstacleSpeed;
+        gapSize = initialGapSize;
+
         if (gameStats.singlePlayerMode) {
             statusElement.textContent = 'SINGLE PLAYER MODE';
         } else {
@@ -691,29 +858,47 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateGamepads(speedFactor) {
         const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-        
+
+        // Handle menu input from gamepads
+        if (inputConfig.menuActive) {
+            handleGamepadMenuInput();
+            return;
+        }
+
         // Check if we need to restart (when both players are dead)
         if (gameStats.gameOver) {
-            // Check specifically for X button press
-            // On PS5, X is button index 0 (not 2 like on Xbox)
-            let xButtonPressed = false;
-            
+            // Check for restart input (X button on gamepad or Space/Enter on keyboard)
+            let restartPressed = keyboardState.space || keyboardState.enter;
+
             for (let i = 0; i < gamepads.length; i++) {
                 const gamepad = gamepads[i];
                 if (gamepad && gamepad.buttons[0] && gamepad.buttons[0].pressed) {
-                    xButtonPressed = true;
+                    restartPressed = true;
                     break;
                 }
             }
-            
-            if (xButtonPressed) {
+
+            if (restartPressed) {
                 resetGame();
                 return;
             }
-            
+
             return; // Don't process other inputs when game is over
         }
-        
+
+        // Handle pause (Escape key or Circle button)
+        if (keyboardState.escape && !gameStats.escapePressedLastFrame) {
+            if (gameStats.pausedBy === null) {
+                gameStats.pausedBy = 0;
+                statusElement.textContent = 'PAUSED';
+            } else {
+                gameStats.pausedBy = null;
+                statusElement.textContent = gameStats.activePlayers > 1 ? "GAME RESUMED" : "SINGLE PLAYER MODE";
+                gameStats.startTime = Date.now() - (gameStats.time * 1000);
+            }
+        }
+        gameStats.escapePressedLastFrame = keyboardState.escape;
+
         // Per-player pause/resume (Circle button index 1)
         for (let i = 0; i < gamepads.length; i++) {
             const gamepad = gamepads[i];
@@ -741,82 +926,112 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         // Don't process movement if paused by any player
         if (gameStats.pausedBy !== null) return;
-        
-        // Process active players' controllers
-        for (let i = 0; i < Math.min(2, gamepads.length); i++) {
-            const gamepad = gamepads[i];
-            
-            if (gamepad && players[i].active) {
-                // Improved deadzone handling with normalized vector
-                const deadzone = 0.15;
-                
-                // Get raw axis values
-                let axisX = gamepad.axes[0];
-                let axisY = gamepad.axes[1];
-                
-                // Calculate magnitude of the vector
-                const magnitude = Math.sqrt(axisX * axisX + axisY * axisY);
-                
-                // If magnitude is below deadzone, set both axes to zero
-                if (magnitude < deadzone) {
-                    axisX = 0;
-                    axisY = 0;
+
+        // Process each player based on their input configuration
+        for (let i = 0; i < 2; i++) {
+            if (!players[i].active) continue;
+
+            let axisX = 0;
+            let axisY = 0;
+            let boostPressed = false;
+
+            const playerInputType = i === 0 ? inputConfig.player1 : inputConfig.player2;
+
+            if (playerInputType === 'keyboard') {
+                // Keyboard input for this player
+                if (i === 0) {
+                    // Player 1: WASD
+                    if (keyboardState.a) axisX -= 1;
+                    if (keyboardState.d) axisX += 1;
+                    if (keyboardState.w) axisY -= 1;
+                    if (keyboardState.s) axisY += 1;
+                    boostPressed = keyboardState.shiftLeft;
                 } else {
-                    // Normalize vector and apply deadzone
-                    const normalizedX = axisX / magnitude;
-                    const normalizedY = axisY / magnitude;
-                    
-                    // Scale the vector based on how far it is beyond the deadzone
-                    const scaledMagnitude = Math.min(1, (magnitude - deadzone) / (1 - deadzone));
-                    
-                    axisX = normalizedX * scaledMagnitude;
-                    axisY = normalizedY * scaledMagnitude;
+                    // Player 2: Arrow keys
+                    if (keyboardState.arrowLeft) axisX -= 1;
+                    if (keyboardState.arrowRight) axisX += 1;
+                    if (keyboardState.arrowUp) axisY -= 1;
+                    if (keyboardState.arrowDown) axisY += 1;
+                    boostPressed = keyboardState.shiftRight;
                 }
-                
-                // Handle boost activation (Square button - on PS5 controllers it's usually button index 1)
-                // Fixed button indices for PS5 controllers (X=0, Circle=1, Square=2, Triangle=3)
-                if (gamepad.buttons[2] && gamepad.buttons[2].pressed && players[i].boostMeter > 0 && players[i].canBoost) {
-                    players[i].boosting = true;
-                    players[i].speed = players[i].boostSpeed;
-                    players[i].boostMeter -= players[i].boostDrain; // Decrease boost meter while boosting
-                    
-                    // When boost meter is depleted, disable boosting until recharged to 50%
-                    if (players[i].boostMeter <= 0) {
-                        players[i].boostMeter = 0;
-                        players[i].canBoost = false; // Prevent further boosting until recharged
-                    }
-                } else {
-                    players[i].boosting = false;
-                    // Set player speed based on their exhaustion state
-                    if (!players[i].canBoost) {
-                        // Player is exhausted - use lower speed from config
-                        players[i].speed = CONFIG.player.exhaustedSpeed;
+
+                // Normalize diagonal movement
+                const magnitude = Math.sqrt(axisX * axisX + axisY * axisY);
+                if (magnitude > 1) {
+                    axisX /= magnitude;
+                    axisY /= magnitude;
+                }
+            } else if (playerInputType === 'gamepad') {
+                // Gamepad input for this player
+                const gamepadIndex = i === 0 ? inputConfig.player1GamepadIndex : inputConfig.player2GamepadIndex;
+                const gamepad = gamepads[gamepadIndex];
+
+                if (gamepad) {
+                    // Improved deadzone handling with normalized vector
+                    const deadzone = 0.15;
+
+                    // Get raw axis values
+                    axisX = gamepad.axes[0];
+                    axisY = gamepad.axes[1];
+
+                    // Calculate magnitude of the vector
+                    const magnitude = Math.sqrt(axisX * axisX + axisY * axisY);
+
+                    // If magnitude is below deadzone, set both axes to zero
+                    if (magnitude < deadzone) {
+                        axisX = 0;
+                        axisY = 0;
                     } else {
-                        // Player is not exhausted - use normal speed
+                        // Normalize vector and apply deadzone
+                        const normalizedX = axisX / magnitude;
+                        const normalizedY = axisY / magnitude;
+
+                        // Scale the vector based on how far it is beyond the deadzone
+                        const scaledMagnitude = Math.min(1, (magnitude - deadzone) / (1 - deadzone));
+
+                        axisX = normalizedX * scaledMagnitude;
+                        axisY = normalizedY * scaledMagnitude;
+                    }
+
+                    boostPressed = gamepad.buttons[2] && gamepad.buttons[2].pressed;
+                }
+            }
+
+            // Handle boost activation
+            if (boostPressed && players[i].boostMeter > 0 && players[i].canBoost) {
+                players[i].boosting = true;
+                players[i].speed = players[i].boostSpeed;
+                players[i].boostMeter -= players[i].boostDrain;
+
+                if (players[i].boostMeter <= 0) {
+                    players[i].boostMeter = 0;
+                    players[i].canBoost = false;
+                }
+            } else {
+                players[i].boosting = false;
+                if (!players[i].canBoost) {
+                    players[i].speed = CONFIG.player.exhaustedSpeed;
+                } else {
+                    players[i].speed = players[i].normalSpeed;
+                }
+
+                if (players[i].boostMeter < 100) {
+                    players[i].boostMeter += players[i].boostRegen;
+
+                    if (players[i].boostMeter >= CONFIG.player.boostRechargeThreshold && !players[i].canBoost) {
+                        players[i].canBoost = true;
                         players[i].speed = players[i].normalSpeed;
                     }
-                    
-                    // Regenerate boost meter slowly when not boosting
-                    if (players[i].boostMeter < 100) {
-                        players[i].boostMeter += players[i].boostRegen; // Passive regeneration
-                        
-                        // Re-enable boosting once the meter reaches configured threshold
-                        if (players[i].boostMeter >= CONFIG.player.boostRechargeThreshold && !players[i].canBoost) {
-                            players[i].canBoost = true;
-                            // Restore normal speed when no longer exhausted
-                            players[i].speed = players[i].normalSpeed;
-                        }
-                    }
                 }
-                
-                // Update player position based on adjusted axis values and current speed
-                players[i].x += axisX * players[i].speed * speedFactor;
-                players[i].y += axisY * players[i].speed * speedFactor;
-                
-                // Keep player within canvas bounds - updated to use inner boundary
-                players[i].x = Math.max(20 + players[i].radius, Math.min(canvas.width - 20 - players[i].radius, players[i].x));
-                players[i].y = Math.max(20 + players[i].radius, Math.min(canvas.height - 20 - players[i].radius, players[i].y));
             }
+
+            // Update player position
+            players[i].x += axisX * players[i].speed * speedFactor;
+            players[i].y += axisY * players[i].speed * speedFactor;
+
+            // Keep player within canvas bounds
+            players[i].x = Math.max(20 + players[i].radius, Math.min(canvas.width - 20 - players[i].radius, players[i].x));
+            players[i].y = Math.max(20 + players[i].radius, Math.min(canvas.height - 20 - players[i].radius, players[i].y));
         }
     }
 
@@ -909,18 +1124,39 @@ document.addEventListener('DOMContentLoaded', function() {
     // Helper function to draw the trail effect when player is boosting
     function drawPlayerTrail(player, playerIndex) {
         for (let t = 1; t <= 5; t++) {
-            // Calculate trail position (offset based on analog direction)
-            const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
             let trailX = player.x;
             let trailY = player.y;
-            
-            if (gamepads[playerIndex]) {
-                const xDir = -gamepads[playerIndex].axes[0]; // Reverse direction for trail
-                const yDir = -gamepads[playerIndex].axes[1];
-                trailX += xDir * (t * 4);
-                trailY += yDir * (t * 4);
+
+            // Get movement direction based on input type
+            let xDir = 0;
+            let yDir = 0;
+
+            const playerInputType = playerIndex === 0 ? inputConfig.player1 : inputConfig.player2;
+
+            if (playerInputType === 'keyboard') {
+                if (playerIndex === 0) {
+                    if (keyboardState.a) xDir += 1;
+                    if (keyboardState.d) xDir -= 1;
+                    if (keyboardState.w) yDir += 1;
+                    if (keyboardState.s) yDir -= 1;
+                } else {
+                    if (keyboardState.arrowLeft) xDir += 1;
+                    if (keyboardState.arrowRight) xDir -= 1;
+                    if (keyboardState.arrowUp) yDir += 1;
+                    if (keyboardState.arrowDown) yDir -= 1;
+                }
+            } else if (playerInputType === 'gamepad') {
+                const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+                const gamepadIndex = playerIndex === 0 ? inputConfig.player1GamepadIndex : inputConfig.player2GamepadIndex;
+                if (gamepads[gamepadIndex]) {
+                    xDir = -gamepads[gamepadIndex].axes[0];
+                    yDir = -gamepads[gamepadIndex].axes[1];
+                }
             }
-            
+
+            trailX += xDir * (t * 4);
+            trailY += yDir * (t * 4);
+
             // Draw trail element
             ctx.beginPath();
             ctx.fillStyle = `rgba(255, 255, 255, ${0.8 - (t * 0.15)})`;
@@ -952,18 +1188,24 @@ document.addEventListener('DOMContentLoaded', function() {
     function draw() {
         // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
+
+        // Show input selection menu if active
+        if (inputConfig.menuActive) {
+            drawInputMenu();
+            return;
+        }
+
         // Update game time only if the game is still active and not paused
         if (!gameStats.gameOver && gameStats.pausedBy === null) {
             gameStats.time = Math.floor((Date.now() - gameStats.startTime) / 1000);
         }
-        
+
         // Draw single green border line used for gameplay boundary
         drawGameBoundary();
-        
+
         // Draw game elements with proper layering
         drawGameElements();
-        
+
         // Update score displays with colored player indicators and matching backlights
         updateScoreDisplays();
     }
@@ -1067,56 +1309,33 @@ document.addEventListener('DOMContentLoaded', function() {
     // Listen for gamepad connections
     window.addEventListener("gamepadconnected", (e) => {
         const gamepadIndex = e.gamepad.index;
-        
-        if (gamepadIndex < 2) { // Only consider first two controllers
-            statusElement.textContent = `PLAYER ${gamepadIndex + 1} CONNECTED`;
-            
-            // If game isn't active yet, check if we can start
-            if (gameStats.gameOver) {
-                const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-                const connectedPads = Array.from(gamepads).filter(pad => pad);
-                
-                // Start game even with one controller
-                if (connectedPads.length >= 1) {
-                    setTimeout(() => {
-                        if (gameStats.gameOver) { // Double check it's still game over
-                            statusElement.textContent = connectedPads.length === 1 ? 
-                                'SINGLE PLAYER MODE' : 'PLAYERS READY';
-                            resetGame();
-                        }
-                    }, 1000); // Wait a second to show the connected message
-                }
-            }
+
+        if (gamepadIndex < 2 && inputConfig.menuActive) {
+            statusElement.textContent = `GAMEPAD ${gamepadIndex + 1} DETECTED`;
         }
     });
 
     window.addEventListener("gamepaddisconnected", (e) => {
         const gamepadIndex = e.gamepad.index;
-        
-        if (gamepadIndex < 2) { // Only consider first two controllers
-            statusElement.textContent = `PLAYER ${gamepadIndex + 1} DISCONNECTED`;
-            
-            // If a player was active, mark them as inactive
-            if (players[gamepadIndex].active) {
-                // Store current obstacle speed before player death
+
+        if (gamepadIndex < 2 && !inputConfig.menuActive) {
+            // Check if this gamepad was assigned to a player
+            const isP1Gamepad = inputConfig.player1 === 'gamepad' && inputConfig.player1GamepadIndex === gamepadIndex;
+            const isP2Gamepad = inputConfig.player2 === 'gamepad' && inputConfig.player2GamepadIndex === gamepadIndex;
+
+            if (isP1Gamepad && players[0].active) {
                 const currentSpeed = obstacleSpeed;
-                
-                playerDeath(gamepadIndex);
-                
-                // Ensure obstacle speed remains consistent after disconnect
-                if (!gameStats.gameOver) {
-                    obstacleSpeed = currentSpeed;
-                }
+                playerDeath(0);
+                if (!gameStats.gameOver) obstacleSpeed = currentSpeed;
             }
-            
-            // Check if we should switch to single player mode
-            const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-            const connectedPads = Array.from(gamepads).filter(pad => pad);
-            
-            if (connectedPads.length === 1 && !gameStats.gameOver) {
-                gameStats.singlePlayerMode = true;
-                // Shorter message to avoid breaking the line
-                statusElement.textContent = `P${connectedPads[0].index + 1} ONLY`;
+            if (isP2Gamepad && players[1].active) {
+                const currentSpeed = obstacleSpeed;
+                playerDeath(1);
+                if (!gameStats.gameOver) obstacleSpeed = currentSpeed;
+            }
+
+            if (!gameStats.gameOver) {
+                statusElement.textContent = 'GAMEPAD DISCONNECTED';
             }
         }
     });
@@ -1147,11 +1366,11 @@ document.addEventListener('DOMContentLoaded', function() {
     controlsGuideElement.style.opacity = '0.8';
     controlsGuideElement.style.zIndex = '5';
     controlsGuideElement.style.textAlign = 'right';
-    controlsGuideElement.innerHTML = 'CONTROLS:<br>JOYSTICK - MOVE<br>CIRCLE - PAUSE<br>SQUARE - DASH';
+    controlsGuideElement.innerHTML = 'KEYBOARD:<br>P1: WASD + L.SHIFT<br>P2: ARROWS + R.SHIFT<br>ESC - PAUSE<br><br>GAMEPAD:<br>STICK/SQUARE/CIRCLE';
     document.body.appendChild(controlsGuideElement);
 
     // Initialize
-    statusElement.textContent = 'CONNECT CONTROLLERS';
+    statusElement.textContent = 'SELECT INPUT METHOD';
     let gameLoopRunning = false;
     
     // Create Audio Context

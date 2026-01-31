@@ -36,12 +36,28 @@ Key features:
 
 ## 🕹 Controls
 
-| Action          | PS5 Controller (P1/P2) | Xbox Controller (P1/P2) |
-|-----------------|-------------------------|-------------------------|
-| Move            | Left stick              | Left stick              |
-| Pause / Resume  | Circle (○)              | B                       |
-| Dash (Boost)    | Square (□)              | X                       |
-| Restart (Game Over) | Any button           | Any button              |
+### Input Selection
+When starting the game, an input selection menu appears. Each player can choose between keyboard or gamepad:
+- **Player 1**: Press WASD (keyboard) or use gamepad
+- **Player 2**: Press Arrow keys (keyboard), use gamepad, or press Enter/Space to skip (single player)
+
+### Keyboard Controls
+
+| Action          | Player 1      | Player 2       |
+|-----------------|---------------|----------------|
+| Move            | WASD          | Arrow Keys     |
+| Dash (Boost)    | Left Shift    | Right Shift    |
+| Pause / Resume  | Escape        | Escape         |
+| Restart         | Space / Enter | Space / Enter  |
+
+### Gamepad Controls
+
+| Action          | PS5 Controller | Xbox Controller |
+|-----------------|----------------|-----------------|
+| Move            | Left stick     | Left stick      |
+| Pause / Resume  | Circle (○)     | B               |
+| Dash (Boost)    | Square (□)     | X               |
+| Restart         | X              | A               |
 
 ---
 
@@ -51,7 +67,7 @@ A simple HTTP server is required to serve the HTML and JS files.
 
 ### Prerequisites
 - [uv](https://docs.astral.sh/uv/) installed on your machine (recommended)
-- Two USB or Bluetooth gamepads supported by your browser
+- Keyboard (for keyboard controls) or USB/Bluetooth gamepads (optional)
 
 ### Start a Local Server (Recommended: uv)
 
