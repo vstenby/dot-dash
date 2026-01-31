@@ -1596,9 +1596,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize sound system
     function initSounds() {
-        // Create sounds for collectables using Web Audio API for better control
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
         // Create different sound effects for each collectable
         createGemSound();
         createStarSound();
