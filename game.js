@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (code === 'ArrowUp' || code === 'ArrowLeft' || code === 'ArrowDown' || code === 'ArrowRight') {
                 inputConfig.player2 = 'keyboard';
                 inputConfig.selectionPhase = 2;
-            } else if (code === 'Enter' || code === 'Space') {
+            } else if (code === 'Enter') {
                 // Skip P2, single player mode - go to ready phase
                 inputConfig.player2 = 'none';
                 inputConfig.selectionPhase = 2;
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         // Ready to start (phase 2)
         else if (inputConfig.selectionPhase === 2) {
-            if (code === 'Enter' || code === 'Space') {
+            if (code === 'Enter') {
                 startGameWithConfig();
             }
         }
@@ -262,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.fillText('or use Gamepad', p2X, 250);
             ctx.fillStyle = '#666666';
             ctx.font = '10px "Press Start 2P"';
-            ctx.fillText('ENTER/SPACE to skip', p2X, 300);
+            ctx.fillText('ENTER to skip', p2X, 300);
         } else if (inputConfig.player2 === 'none' && inputConfig.selectionPhase === 2) {
             // P2 skipped - single player mode
             ctx.fillStyle = '#444444';
@@ -575,6 +575,7 @@ document.addEventListener('DOMContentLoaded', function() {
         startTime: Date.now(),
         highScore: 0,
         gameOver: true, // Start with game not active
+        showGameOverScreen: false, // Flag to show game over screen
         activePlayers: 0,
         singlePlayerMode: false, // Track if game is in single player mode
         pausedBy: null, // Index of player who paused, null if unpaused
@@ -946,7 +947,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (gameStats.activePlayers === 0) {
             // All players are dead - freeze the game and timer
             gameStats.gameOver = true;
-            statusElement.textContent = 'GAME OVER (PRESS X)';
+            gameStats.showGameOverScreen = true;
+            statusElement.textContent = 'GAME OVER';
             // Store the final time when both players are dead
             gameStats.finalTime = gameStats.time;
         } else {
@@ -975,6 +977,7 @@ document.addEventListener('DOMContentLoaded', function() {
         gameStats.activePlayers = (players[0].active ? 1 : 0) + (players[1].active ? 1 : 0);
         gameStats.singlePlayerMode = gameStats.activePlayers === 1;
         gameStats.gameOver = false;
+        gameStats.showGameOverScreen = false;
         gameStats.time = 0;
         gameStats.pausedBy = null;
         gameStats.startButtonWasPressed = [false, false];
@@ -1011,6 +1014,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset game state
         gameStats.pausedBy = null;
         gameStats.gameOver = false;
+        gameStats.showGameOverScreen = false;
         gameStats.time = 0;
         obstacles = [];
         collectables = [];
@@ -1053,8 +1057,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Check if we need to restart (when both players are dead)
         if (gameStats.gameOver) {
-            // Check for restart input (X button on gamepad or Space/Enter on keyboard)
-            let restartPressed = keyboardState.space || keyboardState.enter;
+            // Check for restart input (Enter on keyboard or A button on gamepad)
+            let restartPressed = keyboardState.enter;
+            let menuPressed = keyboardState.q;
 
             for (let i = 0; i < gamepads.length; i++) {
                 const gamepad = gamepads[i];
@@ -1065,7 +1070,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (restartPressed) {
+                gameStats.showGameOverScreen = false;
                 resetGame();
+                return;
+            }
+
+            if (menuPressed) {
+                gameStats.showGameOverScreen = false;
+                returnToMenu();
                 return;
             }
 
@@ -1305,6 +1317,52 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Draw score popups
         drawScorePopups();
+
+        // Draw game over screen overlay if active
+        if (gameStats.showGameOverScreen) {
+            // Semi-transparent dark overlay
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // "GAME OVER" title
+            ctx.textAlign = 'center';
+            ctx.font = '64px "Press Start 2P"';
+            ctx.fillStyle = '#ff3333';
+            ctx.shadowColor = '#ff3333';
+            ctx.shadowBlur = 20;
+            ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 100);
+            ctx.shadowBlur = 0;
+
+            // Display final scores
+            ctx.font = '24px "Press Start 2P"';
+            ctx.fillStyle = '#00ff88';
+            let yOffset = canvas.height / 2;
+
+            if (gameStats.singlePlayerMode) {
+                ctx.fillText(`SCORE: ${players[0].active ? players[0].score : players[1].score}`, canvas.width / 2, yOffset);
+                ctx.fillText(`TIME: ${gameStats.finalTime}s`, canvas.width / 2, yOffset + 40);
+            } else {
+                ctx.fillStyle = '#ff3333';
+                ctx.fillText(`P1: ${players[0].score}`, canvas.width / 2, yOffset);
+                ctx.fillStyle = '#3333ff';
+                ctx.fillText(`P2: ${players[1].score}`, canvas.width / 2, yOffset + 40);
+                ctx.fillStyle = '#00ff88';
+                ctx.fillText(`TIME: ${gameStats.finalTime}s`, canvas.width / 2, yOffset + 80);
+                yOffset += 40;
+            }
+
+            // Options (blinking)
+            const blink = Math.floor(menuAnimFrame / 30) % 2 === 0;
+            if (blink) {
+                ctx.font = '16px "Press Start 2P"';
+                ctx.fillStyle = '#00ff88';
+                ctx.fillText('PLAY AGAIN: ENTER', canvas.width / 2, canvas.height / 2 + 180);
+                ctx.fillStyle = '#888888';
+                ctx.fillText('MAIN MENU: Q', canvas.width / 2, canvas.height / 2 + 220);
+            }
+
+            ctx.textAlign = 'left';
+        }
     }
 
     // Helper function to draw player in boosting state 
@@ -1392,14 +1450,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function draw() {
-        // Clear canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
         // Show input selection menu if active
         if (inputConfig.menuActive) {
             drawInputMenu();
             return;
         }
+
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // Update game time only if the game is still active and not paused
         if (!gameStats.gameOver && gameStats.pausedBy === null) {
