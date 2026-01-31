@@ -133,6 +133,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function startGameWithConfig() {
         inputConfig.menuActive = false;
 
+        // Show the HTML title during gameplay
+        const gameTitle = document.querySelector('.game-title');
+        if (gameTitle) {
+            gameTitle.style.visibility = 'visible';
+        }
+
         // Activate players based on input config
         players[0].active = inputConfig.player1 !== 'none';
         players[1].active = inputConfig.player2 !== 'none';
@@ -368,7 +374,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Hide the HTML title - we'll draw it on canvas instead during menu
     const gameTitle = document.querySelector('.game-title');
     if (gameTitle) {
-        gameTitle.style.display = 'none';
+        gameTitle.style.visibility = 'hidden';
     }
 
     // Add stats container to body (fixed position, doesn't affect layout)
@@ -990,6 +996,12 @@ document.addEventListener('DOMContentLoaded', function() {
         inputConfig.player1GamepadIndex = undefined;
         inputConfig.player2GamepadIndex = undefined;
 
+        // Hide the HTML title when returning to menu
+        const gameTitle = document.querySelector('.game-title');
+        if (gameTitle) {
+            gameTitle.style.visibility = 'hidden';
+        }
+
         // Reset game state
         gameStats.pausedBy = null;
         gameStats.gameOver = false;
@@ -1119,8 +1131,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (keyboardState.d) axisX += 1;
                     if (keyboardState.w) axisY -= 1;
                     if (keyboardState.s) axisY += 1;
-                    // Use Space for boost in single player mode, Left Shift in two player
-                    boostPressed = gameStats.singlePlayerMode ? keyboardState.space : keyboardState.shiftLeft;
+                    // Always use Space for boost
+                    boostPressed = keyboardState.space;
                 } else {
                     // Player 2: Arrow keys
                     if (keyboardState.arrowLeft) axisX -= 1;
