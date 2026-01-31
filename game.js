@@ -1326,6 +1326,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // "GAME OVER" title
             ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
             ctx.font = '64px "Press Start 2P"';
             ctx.fillStyle = '#ff3333';
             ctx.shadowColor = '#ff3333';
@@ -1335,22 +1336,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Display final scores
             ctx.font = '24px "Press Start 2P"';
-            ctx.fillStyle = '#00ff88';
             let yOffset = canvas.height / 2;
 
             if (gameStats.singlePlayerMode) {
                 // Get the score from whichever player was playing
                 const score = players[0].score > 0 || inputConfig.player1 !== 'none' ? players[0].score : players[1].score;
+                ctx.fillStyle = '#00ff88';
                 ctx.fillText(`SCORE: ${score}`, canvas.width / 2, yOffset);
-                ctx.fillText(`TIME: ${gameStats.finalTime}s`, canvas.width / 2, yOffset + 40);
+                ctx.fillText(`TIME: ${gameStats.finalTime}s`, canvas.width / 2, yOffset + 50);
             } else {
                 ctx.fillStyle = '#ff3333';
                 ctx.fillText(`P1: ${players[0].score}`, canvas.width / 2, yOffset);
                 ctx.fillStyle = '#3333ff';
-                ctx.fillText(`P2: ${players[1].score}`, canvas.width / 2, yOffset + 40);
+                ctx.fillText(`P2: ${players[1].score}`, canvas.width / 2, yOffset + 50);
                 ctx.fillStyle = '#00ff88';
-                ctx.fillText(`TIME: ${gameStats.finalTime}s`, canvas.width / 2, yOffset + 80);
-                yOffset += 40;
+                ctx.fillText(`TIME: ${gameStats.finalTime}s`, canvas.width / 2, yOffset + 100);
             }
 
             // Options (blinking)
@@ -1364,6 +1364,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
         }
     }
 
